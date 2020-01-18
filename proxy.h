@@ -48,8 +48,6 @@ private:
 	std::map<std::string, CacheRecord *> cache;
 	std::vector<pollfd> fdset;
 	std::vector<Session *> sessions;
+	//std::map<std::string,  hostent *> dns_resolved;
 
 };
-
-
-

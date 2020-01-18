@@ -5,6 +5,66 @@ http://gemmei.ftp.acc.umu.se/mirror/cdimage/archive/7.1.0-live/i386/webboot/debi
 segfault
 
 
+http://www.kremlin.ru/multimedia/video
 
 
 
+
+//поменять способ использования ключа char * to string
+//Range: не обрабатывается
+
+
+fit.nsu.ru -> cache problems in request
+
+
+	char * request = buf;
+
+	sprintf(request,
+	"GET %s HTTP/1.1\r\n"
+	"Host: %s\r\n"
+	"Accept: */*\r\n"
+	"Content-Type: application/x-www-form-urlencoded\r\n"
+	"Connection: close\r\n\r\n", this->url, this->host);
+
+	this->request_length = strlen(request);
+
+
+	bcopy(request, this->buffer, this->request_length);
+
+
+	this->buffer[this->request_length] = '\0';
+
+
+
+
+
+
+
+
+
+
+
+GET http://fit.nsu.ru/ HTTP/1.1
+Host: fit.nsu.ru
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Gecko/20100101 Firefox/72.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+Cookie: 4ef3849b85d250274dd4a85d3c435d42=365675538dbd5131a8ccff441b6bb956
+Upgrade-Insecure-Requests: 1
+Pragma: no-cache
+Cache-Control: no-cache
+
+
+GET http://fit.nsu.ru/ HTTP/1.1
+Host: fit.nsu.ru
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Gecko/20100101 Firefox/72.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3
+Accept-Encoding: gzip, deflate
+Connection: close
+Cookie: 4ef3849b85d250274dd4a85d3c435d42=365675538dbd5131a8ccff441b6bb956
+Upgrade-Insecure-Requests: 1
+Pragma: no-cache
+Cache-Control: no-cache

@@ -15,6 +15,8 @@
 #include<stdio.h>
 #include<strings.h>
 #include<string.h>
+#include<fcntl.h>
+
 
 
 #include<errno.h>
@@ -24,8 +26,8 @@
 
 
 
-#define SESSION_BUFFER_SIZE 1024
-#define IO_BUFFER_SIZE 1024
+#define SESSION_BUFFER_SIZE 8192
+#define IO_BUFFER_SIZE 8192
 
 
 
@@ -62,6 +64,9 @@ public:
 	int send_request();
 	int manage_response(int poll_read_ready, int poll_write_ready);
 
+	int use_cache();
+
+
 	bool is_sending(){return sending_to_client;};
 	//void set_is_sending(bool sending){sending_to_client = sending;};
 
@@ -85,6 +90,7 @@ private:
 	char * url;
 	char * protocol;
 	char * host;
+	char * resource;
 
 	bool sending_to_client;
 
@@ -94,6 +100,7 @@ private:
 	int buffer_read_position;
 	int request_length;
 
+	//std::map<std::string,  hostent *> * dns;
 
 
 

@@ -21,7 +21,7 @@ void Proxy::start(){
 
 	this->fdset.push_back(listener_pollfd);
 
-	pollfd * fds_array = nullptr;
+	pollfd * fds_array = NULL;
 
 	
 
@@ -36,9 +36,12 @@ void Proxy::start(){
 			break;
 		}
 
-		fds_array = this->fdset.data();
+		//fds_array = this->fdset.data();
 
-		assert(nullptr != fds_array);
+
+		fds_array = &this->fdset[0];
+
+		assert(NULL != fds_array);
 
 
 		int fdset_size = this->fdset.size();	
@@ -61,6 +64,8 @@ void Proxy::start(){
 				this->sessions.erase(this->sessions.begin() + i);
 				this->fdset.erase(this->fdset.begin() +  (i * 2 + 1));
 				this->fdset.erase(this->fdset.begin() +  (i * 2 + 1));
+				--i;
+				--sessions_count;
 			}
 		}
 
@@ -91,6 +96,7 @@ int Proxy::accept_connection(){
 	}
 
 	Session * session = new Session(client_socket, &this->cache);
+	//printf("%s\n", "push_back");
 	this->sessions.push_back(session);
 	printf("%s\n", "Add session");
 	return 0;
@@ -116,8 +122,9 @@ int Proxy::accept_connection(){
 
 
 int Proxy::serve_session(Session * session, pollfd * fds){
-	assert(nullptr != session);
-	assert(nullptr != fds);
+	//printf("%s\n", "server session");
+	assert(NULL != session);
+	assert(NULL != fds);
 
 
 	session->getState();
@@ -140,7 +147,7 @@ int Proxy::serve_session(Session * session, pollfd * fds){
 
             break;
         case SEND_REQUEST:
-        	printf("%s\n", "sending request...");
+        	//printf("%s\n", "sending request...");
 
             if (POLLHUP & fds[1].revents) {
                 fprintf(stderr, "Remote server closed!\n");
@@ -155,12 +162,12 @@ int Proxy::serve_session(Session * session, pollfd * fds){
 
         case MANAGE_RESPONSE:
 
-            if (fds[0].revents & POLLHUP || fds[1].revents & POLLHUP) {
+            if ((fds[0].revents & POLLHUP) || (fds[1].revents & POLLHUP)) {
                 fprintf(stderr, "Connection closed!\n");
                 return -1;
             }
-            if (fds[1].revents & POLLIN || (session->is_sending() && fds[0].revents & POLLOUT)) {
-                session->manage_response(fds[1].revents & POLLIN, fds[0].revents & POLLOUT);
+            if ((fds[1].revents & POLLIN) || (session->is_sending() && (fds[0].revents & POLLOUT))) {
+                return session->manage_response(fds[1].revents & POLLIN, fds[0].revents & POLLOUT);
             }
 
             break;
@@ -171,8 +178,13 @@ int Proxy::serve_session(Session * session, pollfd * fds){
         	// если отлетит соединение, которое заполняет кэш, а есть читающие этот кэш,
         	// должен найтись заместитель
 
-
-
+            if (fds[0].revents & POLLHUP) {
+                fprintf(stderr, "Connection closed!\n");
+                return -1;
+            }
+            if(fds[0].revents & POLLOUT){
+            	return session->use_cache();
+            }
             break;
         default:
         	return -1;
@@ -210,12 +222,16 @@ int Proxy::update_sessions(){
         if(fds_count < i + 1){
        		this->fdset.push_back(new_pollfd);
        		this->fdset.push_back(new_pollfd);
-       		printf("%s\n", "add new fd");
+       		//printf("%s\n", "add new fd");
         }
 
 
         this->fdset[client_i].fd = this->sessions[i]->client_socket;
         this->fdset[server_i].fd = this->sessions[i]->remote_socket;
+
+
+         this->fdset[client_i].revents = 0;
+         this->fdset[server_i].revents = 0;
 
         switch (sessions[i]->getState()) {
             case RECEIVE_CLIENT_REQUEST:
@@ -240,6 +256,7 @@ int Proxy::update_sessions(){
                 this->fdset[server_i].events = 0;
                 break;
             default:
+            	printf("%s\n", "Invalid session state");
             	return -1;
         }
     }
@@ -252,7 +269,7 @@ int Proxy::update_sessions(){
 
 
 int Proxy::close_session(Session * session){
-	assert(nullptr != session);
+	assert(NULL != session);
 	return 0;
 }
 
