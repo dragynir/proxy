@@ -12,6 +12,20 @@ http://www.kremlin.ru/multimedia/video
 
 //поменять способ использования ключа char * to string
 //Range: не обрабатывается
+//загрузка файлов с остановкой google, mozilla
+//parse url function
+
+http://cdimage.debian.org/mirror/cdimage/archive/7.1.0-live/i386/webboot/
+
+я не обрабатываю post там может быть тело в запросе
+
+
+если кэш не юзается, то возможно разные url
+
+
+gethostbyname , use another function for errors
+void herror(const char *s);
+
 
 
 fit.nsu.ru -> cache problems in request
@@ -66,5 +80,19 @@ Accept-Encoding: gzip, deflate
 Connection: close
 Cookie: 4ef3849b85d250274dd4a85d3c435d42=365675538dbd5131a8ccff441b6bb956
 Upgrade-Insecure-Requests: 1
+Pragma: no-cache
+Cache-Control: no-cache
+
+
+
+Unknown host
+
+Host: urls.api.twitter.com
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Gecko/20100101 Firefox/72.0
+Accept: */*
+Accept-Language: ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+Referer: http://www.codenet.ru/
 Pragma: no-cache
 Cache-Control: no-cache

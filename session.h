@@ -53,8 +53,9 @@ public:
 
 	int getState(){return state;}
 	void setState(SessionState state){this->state = state;}
-	void setUrl(char * url){this->url = url;};
-	void setProtocol(char * protocol){this->protocol = protocol;}
+
+	/*void setUrl(char * url){this->url = url;};
+	void setProtocol(char * protocol){this->protocol = protocol;}*/
 
 	char * getBuffer(){return buffer;}
 
@@ -87,10 +88,20 @@ private:
 	int cache_read_position;
 	int cache_write_position;
 	std::map<std::string, CacheRecord *> * cache;
-	char * url;
+
+	
+	CacheRecord * cache_record;
+
+	/*char * url;
 	char * protocol;
 	char * host;
-	char * resource;
+	char * resource;*/
+
+
+	std::string * url;
+	std::string * host;
+	int response_code;
+
 
 	bool sending_to_client;
 
@@ -99,6 +110,8 @@ private:
 	int buffer_write_position;
 	int buffer_read_position;
 	int request_length;
+
+
 
 	//std::map<std::string,  hostent *> * dns;
 

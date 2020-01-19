@@ -3,10 +3,12 @@
 
 
 
-CacheRecord::CacheRecord(){
+CacheRecord::CacheRecord(bool local){
 	this->data = NULL;
+	this->local = local;
 	this->size = 0;
 	this->full = false;
+	this->out_of_date = false;
 	this->capacity = 0;
 }
 

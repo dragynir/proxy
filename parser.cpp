@@ -85,7 +85,7 @@ int HttpParser::parse_start_line(char * start_line, int line_length, http_info *
 
 
 
-
+//============================================================: cond jump 
 // case when url with host/resource
 int HttpParser::parse_url(char* parsing_str, http_info * info) {
     //printf("Parsing str %s\n", parsing_str);
@@ -193,8 +193,8 @@ int HttpParser::parse_client_request(
 	*protocol = info.protocol;
 
 
-	printf("Url: ++%s++\n", info.url);
-	printf("Protocol: ++%s++\n", info.protocol);
+	/*printf("Url: ++%s++\n", info.url);
+	printf("Protocol: ++%s++\n", info.protocol);*/
 		
 
 
@@ -205,7 +205,7 @@ int HttpParser::parse_client_request(
 	// в url есть хост
 	if(0 == res){
 		//printf("Res: ++%s++\n", info.resource);
-		printf("Host: ++%s++\n", info.host);
+		//printf("Host: ++%s++\n", info.host);
 		*resource = info.resource;
 		//free(info.url);
 		*url = info.url;
@@ -270,8 +270,9 @@ int HttpParser::parse_client_request(
 		cursor+=2;
 	}
 
-	printf("-------++%s++\n", info.host);
+	//printf("-------++%s++\n", info.host);
 
+	*url = NULL;
 	*resource = info.url;
 	*protocol = info.protocol;
 	*host = info.host;

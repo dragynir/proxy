@@ -33,7 +33,6 @@ public:
 
 
 	static int parse_client_request(char *  request, int request_length, char ** url, char ** protocol, char ** host, char ** resource);
-
 	
 private:
 

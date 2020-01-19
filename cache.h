@@ -16,11 +16,16 @@ class CacheRecord{
 
 public:
 
-	CacheRecord();
+	CacheRecord(bool local);
 
 	bool is_full(){return full;}
 
 	void finish(){this->full = true;};
+
+	bool is_outdated(){return out_of_date;}
+	bool is_local(){return this->local;}
+	void outdated(){this->out_of_date = true;}
+
 
 	bool is_empty(){return 0 == size;}
 
@@ -39,5 +44,7 @@ private:
 	size_t capacity;
 	size_t size;
 	bool full;
+	bool out_of_date;
+	bool local;
 
 };

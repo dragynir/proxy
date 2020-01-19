@@ -163,10 +163,13 @@ int Proxy::serve_session(Session * session, pollfd * fds){
         case MANAGE_RESPONSE:
 
             if ((fds[0].revents & POLLHUP) || (fds[1].revents & POLLHUP)) {
-                fprintf(stderr, "Connection closed!\n");
+            	// тут необъходимо учитывать кэш?
+            	// в solaris  понимать конец сообщения
+                fprintf(stderr, "Connection closed POLLHUP!\n");
                 return -1;
             }
             if ((fds[1].revents & POLLIN) || (session->is_sending() && (fds[0].revents & POLLOUT))) {
+
                 return session->manage_response(fds[1].revents & POLLIN, fds[0].revents & POLLOUT);
             }
 
