@@ -58,9 +58,10 @@ void Proxy::start(){
 		for(int i = 0; i < sessions_count; ++i){
 			result = serve_session(this->sessions[i], &fds_array[i * 2 + 1]);
 			if(result < 0){
+				//close_session(this->sessions[i]);
 
-				close_session(this->sessions[i]);
-
+				assert(NULL != this->sessions[i]);
+				delete this->sessions[i];
 				this->sessions.erase(this->sessions.begin() + i);
 				this->fdset.erase(this->fdset.begin() +  (i * 2 + 1));
 				this->fdset.erase(this->fdset.begin() +  (i * 2 + 1));
@@ -86,19 +87,16 @@ void Proxy::start(){
 
 
 int Proxy::accept_connection(){
-
-	printf("%s\n", "Accept connection");
 	int client_socket = accept(this->listener, NULL, NULL);
 
 	if(client_socket < 0){
 		perror("accept");
 		return -1;
 	}
-
+	//printf("%s\n", "Accept connection");
 	Session * session = new Session(client_socket, &this->cache);
 	//printf("%s\n", "push_back");
 	this->sessions.push_back(session);
-	printf("%s\n", "Add session");
 	return 0;
 }	
 
@@ -277,10 +275,6 @@ int Proxy::update_sessions(){
                 this->fdset[client_i].events = POLLIN;
                 this->fdset[server_i].events = 0;
                 break;
-            /*case CONNECT:
-                this->fdset[client_i].events = POLLOUT;
-                this->fdset[server_i].events = 0;
-                break;*/
             case SEND_REQUEST:
                 this->fdset[client_i].events = 0;
                 this->fdset[server_i].events = POLLOUT;
@@ -313,5 +307,11 @@ int Proxy::close_session(Session * session){
 }
 
 int Proxy::close_all_sessions(){
+	printf("%s\n", "All sessions closed");
+	for(size_t i = 0; i < this->sessions.size(); ++i){
+		this->sessions[i]->close_sockets();
+		assert(NULL != this->sessions[i]);
+		delete this->sessions[i];
+	}
 	return 0;
 }

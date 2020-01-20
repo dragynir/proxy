@@ -12,6 +12,12 @@ CacheRecord::CacheRecord(bool local){
 	this->capacity = 0;
 }
 
+
+CacheRecord::~CacheRecord(){
+	free(this->data);
+}
+
+
 int CacheRecord::add_data(char * add_data, size_t add_size){
 	if(0 == add_size){
 		return 0;

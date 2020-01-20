@@ -66,7 +66,7 @@ public:
 	int manage_response(int poll_read_ready, int poll_write_ready);
 
 	int use_cache();
-	int close_sockets();
+	void close_sockets();
 
 
 	bool is_sending(){return sending_to_client;};
@@ -93,12 +93,6 @@ private:
 
 	CacheRecord * cache_record;
 
-	/*char * url;
-	char * protocol;
-	char * host;
-	char * resource;*/
-
-
 	std::string * url;
 	std::string * host;
 	int response_code;
@@ -111,11 +105,5 @@ private:
 	int buffer_write_position;
 	int buffer_read_position;
 	int request_length;
-
-
-
-	//std::map<std::string,  hostent *> * dns;
-
-
 
 };

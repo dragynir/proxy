@@ -60,7 +60,7 @@ int HttpParser::parse_start_line(char * start_line, int line_length, http_info *
 
 
 
-	int protocol_length = strlen(cursor);
+	/*int protocol_length = strlen(cursor);
 
 	//printf("Length: %d\n", protocol_length);
 
@@ -74,7 +74,7 @@ int HttpParser::parse_start_line(char * start_line, int line_length, http_info *
 
 	bcopy(cursor, protocol, protocol_length);
 	protocol[protocol_length] = '\0';
-	info->protocol = protocol;
+	info->protocol = protocol;*/
 
 	//printf("%s ++%s++\n", "protocol parsed", protocol);
 
@@ -85,10 +85,83 @@ int HttpParser::parse_start_line(char * start_line, int line_length, http_info *
 
 
 
-
-//============================================================: cond jump 
-// case when url with host/resource
 int HttpParser::parse_url(char* parsing_str, http_info * info) {
+    //printf("Parsing str %s\n", parsing_str);
+    if (8 > strlen(parsing_str)) {
+        fprintf(stderr, "URL format: http://<host_name>[:port]/[page]>\n");
+        return -1;
+    }
+
+    int url_length = strlen(parsing_str);
+
+
+
+
+    char * found = strstr(parsing_str, "//");
+    char * host_start = parsing_str;
+    char * host_end = NULL;
+
+    if(NULL != found){
+
+    	if(url_length - 1 == parsing_str - found){
+    		printf("%s\n", "Invalid url");
+    		return -1;
+    	}
+    	host_start = found + 2;
+    }
+
+
+
+
+
+    found = strchr(host_start, ':');
+
+
+
+    char * resource_start = NULL;
+    if(NULL == found){
+    	//printf("%s\n", "There is no port");
+    	host_end = strchr(host_start + 1, '/');
+    	if(NULL == host_end){
+    		printf("%s\n", "Invalid url: host");
+    		return -1;
+    	}
+    	resource_start = host_end;
+    }else{
+    	//printf("%s\n", "Found port");
+    	host_end = found;
+    	// ресурс начинается со /
+    	resource_start = strchr(found, '/');
+    	if(NULL == resource_start){
+    		printf("%s\n", "Invalid url: resource");
+    		return -1;
+    	}
+    }
+
+    char keep_char = *host_end;
+    *host_end = '\0';
+    int host_length = strlen(host_start);
+    info->host = (char *)malloc(host_length + 1);
+    bcopy(host_start, info->host, host_length + 1);
+    *host_end = keep_char;
+
+
+    //printf("++%s++\n", info->host);
+    //printf("++%s++\n", resource_start);
+    int resource_length = strlen(resource_start);
+    info->resource = (char *)malloc(resource_length + 1);
+    bcopy(resource_start, info->resource, resource_length + 1);
+
+    return 0;
+}
+
+
+
+
+
+//============================================================: cond jump, старая функция url
+// case when url with host/resource
+/*int HttpParser::parse_url(char* parsing_str, http_info * info) {
     //printf("Parsing str %s\n", parsing_str);
     if (8 > strlen(parsing_str)) {
         fprintf(stderr, "URL format: http://<host_name>[:port]/[page]>\n");
@@ -149,7 +222,7 @@ int HttpParser::parse_url(char* parsing_str, http_info * info) {
     //strcpy(resource, move);
 
     return 0;
-}
+}*/
 
 
 /*int HttpParser::parse_host_line(){
@@ -161,9 +234,13 @@ int HttpParser::parse_url(char* parsing_str, http_info * info) {
 // доделать парсинг host при наличии host в url
 
 
+
+
+
+
 // добавить парсинг хоста при наличии его после метода запроса
 int HttpParser::parse_client_request(
-	char *  request, int request_length, char ** url, char ** protocol, char ** host, char ** resource){
+	char *  request, int request_length, char ** url, /*char ** protocol,*/ char ** host, char ** resource){
 	//printf("%s\n", "HttpParser::parse_client_request");
 
 	//char * request = session->getBuffer();
@@ -191,7 +268,7 @@ int HttpParser::parse_client_request(
 	//printf("%s\n", "first line");
 
 	*url = info.url;
-	*protocol = info.protocol;
+	//*protocol = info.protocol;
 
 
 	/*printf("Url: ++%s++\n", info.url);
@@ -199,7 +276,7 @@ int HttpParser::parse_client_request(
 		
 
 
-
+	//printf("+++%s+++\n", info.url);
 
 	// хост есть в url
 	res = parse_url(info.url, &info);
@@ -210,7 +287,7 @@ int HttpParser::parse_client_request(
 		*resource = info.resource;
 		//free(info.url);
 		*url = info.url;
-		*protocol = info.protocol;
+		//*protocol = info.protocol;
 		*host = info.host;
 		return 0;
 	}
@@ -241,7 +318,7 @@ int HttpParser::parse_client_request(
 
 			if(NULL == cursor){
 				free(info.url);
-				free(info.protocol);
+				//free(info.protocol);
 				return -1;
 			}
 
@@ -256,7 +333,7 @@ int HttpParser::parse_client_request(
 			if(NULL == host){
 				perror("malloc");
 				free(info.url);
-				free(info.protocol);
+				//free(info.protocol);
 				return -1;
 			}
 
@@ -275,7 +352,7 @@ int HttpParser::parse_client_request(
 
 	*url = NULL;
 	*resource = info.url;
-	*protocol = info.protocol;
+	//*protocol = info.protocol;
 	*host = info.host;
 
 

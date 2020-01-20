@@ -10,8 +10,6 @@ Session::Session(int client_socket, std::map<std::string, CacheRecord *> * cache
 
 	this->cache = cache;
 	this->cache_record = NULL;
-
-	//state = SessionState::RECEIVE_CLIENT_REQUEST;
 	state = RECEIVE_CLIENT_REQUEST;
 	cache_read_position = 0;
 	cache_write_position = 0;
@@ -27,8 +25,6 @@ Session::Session(int client_socket, std::map<std::string, CacheRecord *> * cache
 
 	url = NULL;
 	host = NULL;
-	/*protocol = NULL;
-	resource = NULL;*/
 }
 
 
@@ -36,9 +32,11 @@ Session::Session(int client_socket, std::map<std::string, CacheRecord *> * cache
 Session::~Session(){
 	delete this->url;
 	delete this->host;
-	if(this->cache_record->is_local()){
+
+	if(NULL != this->cache_record && this->cache_record->is_local()){
 		delete this->cache_record;
 	}
+
 }
 
 
@@ -85,8 +83,8 @@ int Session::connect_to_host(char* hostname, int port) {
 
 	if(NULL == server_host){
 		//perror("gethostbyname");
-
-		herror("gethostbyname");
+		printf("%s%s\n", "Can't reach: ", hostname);
+		//herror("gethostbyname");
 		return -1;
 	}
 
@@ -167,11 +165,11 @@ int Session::handle_client_request(int request_length){
 	printf("Get end request%s\n\n", "--------------------------------------");*/
 
 
-	char * char_url, * char_host, * char_resource, * char_protocol;
+	char * char_url, * char_host, * char_resource;//, * char_protocol;
 
 
 	int res = HttpParser::parse_client_request(
-	this->buffer, request_length, &char_url, &char_protocol, &char_host, &char_resource);
+	this->buffer, request_length, &char_url, /*&char_protocol,*/ &char_host, &char_resource);
 
 
 	if(res < 0){
@@ -198,7 +196,7 @@ int Session::handle_client_request(int request_length){
 		this->url->assign(char_url, strlen(char_url));
 		free(char_url);
 	}
-	free(char_protocol);
+	//free(char_protocol);
 	free(char_resource);
 
 
@@ -256,7 +254,7 @@ int Session::handle_client_request(int request_length){
 	// 
 	if(this->cache->end() != it){
 		//printf("Use cache for: %s, res: %s\n", this->host, this->resource);
-		std::cout << "Use cache for: ++" << *this->url << "++\n";
+		std::cout << "\n<=======================Use cache for: " << *this->url << "\n";
 
 		//this->state = SessionState::USE_CACHE;
 		this->state = USE_CACHE;
@@ -360,8 +358,8 @@ int Session::handle_client_request(int request_length){
 
 	//size_t REQUEST_LEN = 256;
 
-
-	std::cout << "Send request to: ++" << *this->url << "++\n";
+				  
+	std::cout << "\n------------------------>Send request to: " << *this->url << "\n";
 
 	//================================================================================seg
 	//printf("Send request to: %s, res: %s\n", this->host, this->resource);
@@ -532,7 +530,8 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 
 			close(this->remote_socket);
 			this->remote_socket = -1;
-			printf("%s\n", "close server socket");
+			//printf("%s\n", "close server socket ");
+			//std::cout << "Close server socket for: " << *this->url << "\n"; 
 			//std::cout << *this->url << "\n";
 
 
@@ -560,13 +559,13 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 
 			
 			char * data = this->cache_record->get_data();
-			char keep_char = data[cache_size]; 
+			char keep_char = data[cache_size - 1]; 
 
-			data[cache_size] = '\0';
+			data[cache_size - 1] = '\0';
 			char * found = strstr(data, "\r\n");
 
 			if(NULL != found){
-				int first_line_length = found - data;
+				//int first_line_length = found - data;
 				//HTTP/1.1 200 OK
 				/*if(first_line_length < ){
 
@@ -598,7 +597,7 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 				
 
 				assert(this->cache->end() != cache_it);
-				data[cache_size] = keep_char;
+				data[cache_size - 1] = keep_char;
 				*(found + 3) = ' ';
 
 				// если код 206 например, то будет для каждого запроса новое подключение
@@ -623,8 +622,9 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 
 				//*(found + 3) = ' ';
 
+			}else{
+				data[cache_size - 1] = keep_char;
 			}
-			data[cache_size] = keep_char;
 		}
 
 
@@ -642,7 +642,7 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 		}else{
 			if(0 == read_count){
 				this->cache_record->finish();
-				printf("%s\n", "Cache finish");
+				//printf("%s\n", "Cache finish");
 				//std::cout << *this->url << "\n";
 			}else{
 				int to_add = this->cache_write_position + read_count - cache_size;
@@ -706,7 +706,7 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 			close(this->client_socket);
 			this->client_socket = -1;
 
-			printf("%s\n", "All data had writen");
+			//printf("%s\n", "All data had writen");
 			//std::cout << *this->url << "\n";
 			//printf("%s\n", "close connection");
 
@@ -741,13 +741,13 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 			if(write_count < 0){
 
 				// возможно отсоединился клиент
-				printf("%s\n", "poll_write6");
+				//printf("%s\n", "poll_write6");
 				close(this->client_socket);
 				this->client_socket	= -1;
 				this->sending_to_client = false;
 
-
-				printf("%s\n", "close client socket");
+				std::cout << "Close client socket for: " << *this->url << "\n";
+				//printf("%s\n", "close client socket");
 				perror("write");
 
 
@@ -836,7 +836,7 @@ int Session::use_cache(){
 
 
 
-int Session::close_sockets(){
+void Session::close_sockets(){
 
 
 	if(-1 != this->client_socket){
@@ -846,5 +846,4 @@ int Session::close_sockets(){
 	if(-1 != this->remote_socket){
 		close(this->remote_socket);
 	}
-
 }

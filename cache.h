@@ -18,6 +18,8 @@ public:
 
 	CacheRecord(bool local);
 
+	~CacheRecord();
+
 	bool is_full(){return full;}
 
 	void finish(){this->full = true;};
