@@ -120,7 +120,7 @@ int Proxy::accept_connection(){
 
 }*/
 
-
+//====================================================================== close socket if -1
 int Proxy::serve_session(Session * session, pollfd * fds){
 	//printf("%s\n", "server session");
 	assert(NULL != session);
@@ -130,48 +130,77 @@ int Proxy::serve_session(Session * session, pollfd * fds){
 	session->getState();
 
 
-	//int res = 0;
-
+	int res = 0;
 
     switch (session->getState()) {
 
         case RECEIVE_CLIENT_REQUEST:
+
+
             if((POLLHUP | POLLERR) & fds[0].revents){
             	fprintf(stderr, "Client closed!\n");
+            	session->close_sockets();
             	return -1;
             }
 
             if(POLLIN & fds[0].revents){
-            	return session->read_client_request();
+            	res = session->read_client_request();
+            	if(res < 0){
+            		session->close_sockets();
+            	}
+            	return res;
         	}
+
+
 
             break;
         case SEND_REQUEST:
         	//printf("%s\n", "sending request...");
 
+
+
+
+
             if (POLLHUP & fds[1].revents) {
                 fprintf(stderr, "Remote server closed!\n");
+                session->close_sockets();
                 return -1;
             }
 
             if (POLLOUT & fds[1].revents) {
-            	return session->send_request();
+            	res = session->send_request();
+            	if(res < 0){
+            		session->close_sockets();
+            	}
+
+            	return res;
             }
+
+
+
 
             break;
 
         case MANAGE_RESPONSE:
 
+
+
             if ((fds[0].revents & POLLHUP) || (fds[1].revents & POLLHUP)) {
             	// тут необъходимо учитывать кэш?
             	// в solaris  понимать конец сообщения
+            	session->close_sockets();
                 fprintf(stderr, "Connection closed POLLHUP!\n");
                 return -1;
             }
             if ((fds[1].revents & POLLIN) || (session->is_sending() && (fds[0].revents & POLLOUT))) {
-
-                return session->manage_response(fds[1].revents & POLLIN, fds[0].revents & POLLOUT);
+            	int res = session->manage_response(fds[1].revents & POLLIN, fds[0].revents & POLLOUT);
+            	if(res < 0){
+            		session->close_sockets();
+            	}
+                return res;
             }
+
+            
 
             break;
 
@@ -183,10 +212,17 @@ int Proxy::serve_session(Session * session, pollfd * fds){
 
             if (fds[0].revents & POLLHUP) {
                 fprintf(stderr, "Connection closed!\n");
+                session->close_sockets();
                 return -1;
             }
             if(fds[0].revents & POLLOUT){
-            	return session->use_cache();
+
+            	res = session->use_cache();
+            	if(res < 0){
+            		session->close_sockets();
+            	}
+            	return res;
+
             }
             break;
         default:

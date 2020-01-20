@@ -8,6 +8,10 @@ segfault
 http://www.kremlin.ru/multimedia/video
 
 
+// падает при POST, CONNECT, если их разрешить
+
+
+// что отвечать google а proxy-connection? Proxy-connection:close?
 
 
 //поменять способ использования ключа char * to string
@@ -21,6 +25,7 @@ http://cdimage.debian.org/mirror/cdimage/archive/7.1.0-live/i386/webboot/
 
 
 если кэш не юзается, то возможно разные url
+
 
 
 gethostbyname , use another function for errors
@@ -47,8 +52,6 @@ fit.nsu.ru -> cache problems in request
 
 
 	this->buffer[this->request_length] = '\0';
-
-
 
 
 
@@ -96,3 +99,66 @@ Connection: keep-alive
 Referer: http://www.codenet.ru/
 Pragma: no-cache
 Cache-Control: no-cache
+
+
+
+
+
+
+
+
+
+
+Connection: close
+Transfer-Encoding: chunked?
+
+
+
+
+
+GET /mirror/cdimage/archive/7.1.0-live/i386/webboot/ HTTP/1.1
+Host: cdimage.debian.org
+Proxy-Connection: keep-alive
+Cache-Control: max-age=0
+DNT: 1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+Accept-Encoding: gzip, deflate
+Accept-Language: ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7
+If-Modified-Since: Tue, 02 Jun 2015 11:26:05 GMT
+
+
+
+HTTP/1.1 200 OK
+Date: Sun, 19 Jan 2020 17:26:27 GMT
+Server: Apache/2.4.39 (Unix)
+Last-Modified: Tue, 02 Jun 2015 11:26:05 GMT
+Cache-Control: max-age=300
+Expires: Sun, 19 Jan 2020 17:31:27 GMT
+Connection: close
+Transfer-Encoding: chunked
+Content-Type: text/html;charset=UTF-8
+
+
+GET /mirror/cdimage/archive/7.1.0-live/i386/webboot/ HTTP/1.1
+Host: cdimage.debian.org
+Proxy-Connection: keep-alive
+Cache-Control: max-age=0
+Upgrade-Insecure-Requests: 1
+DNT: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+Accept-Encoding: gzip, deflate
+Accept-Language: ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7
+If-Modified-Since: Tue, 02 Jun 2015 11:26:05 GMT
+
+
+
+HTTP/1.1 200 OK
+Date: Sun, 19 Jan 2020 17:26:27 GMT
+Server: Apache/2.4.39 (Unix)
+Last-Modified: Tue, 02 Jun 2015 11:26:05 GMT
+Cache-Control: max-age=300
+Expires: Sun, 19 Jan 2020 17:31:27 GMT
+Content-Type: text/html;charset=UTF-8

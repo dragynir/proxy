@@ -15,9 +15,10 @@ int HttpParser::parse_start_line(char * start_line, int line_length, http_info *
 	*method_end = '\0';
 
 
-
+	//parse url fix
+	// strcmp(cursor, "CONNECT") != 0
     if (strcmp(cursor, "GET") != 0) {
-        fprintf(stderr, "Wrong method! %s\n", cursor);
+        //fprintf(stderr, "Wrong method! %s\n", cursor);
         return -1;
     }
 

@@ -286,6 +286,7 @@ int Session::handle_client_request(int request_length){
 
 
 	if(remote_socket < 0){
+		//close client socket=========================================================================================
 		return -1;
 	}
 
@@ -518,13 +519,13 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 
 
 			// can do this cause capasity is 2 * size
-			this->cache_record->get_data()[cache_size] = '\0';
+			//this->cache_record->get_data()[cache_size] = '\0';
 
 			// refactor, search threw all response
 
 
 			// found end of header
-			char * found = strstr(this->cache_record->get_data(), "\r\n\r\n");//====================================
+			//char * found = strstr(this->cache_record->get_data(), "\r\n\r\n");//====================================
 			
 
 
@@ -555,7 +556,7 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 
 
 		// check response code
-		if(-1 == response_code && cache_size > 2){
+		if(-1 == this->response_code && cache_size > 2){
 
 			
 			char * data = this->cache_record->get_data();
@@ -597,10 +598,13 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 				
 
 				assert(this->cache->end() != cache_it);
+				data[cache_size] = keep_char;
+				*(found + 3) = ' ';
 
 				// если код 206 например, то будет для каждого запроса новое подключение
 				if(200 == this->response_code){
-
+					/*data[cache_size] = keep_char;
+					*(found + 3) = ' ';*/
 					cache_it->second->add_data(this->cache_record->get_data(), this->cache_record->get_size());
 
 					assert(this->cache_record->is_local());
@@ -617,7 +621,7 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 
 				std::cout << "Response code for: " << *this->url << " is " << this->response_code << "\n";
 
-				*(found + 3) = ' ';
+				//*(found + 3) = ' ';
 
 			}
 			data[cache_size] = keep_char;
@@ -697,8 +701,11 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 
 		if(0 == to_write && this->cache_record->is_full()){
 			this->sending_to_client	= false;
+
+
 			close(this->client_socket);
 			this->client_socket = -1;
+
 			printf("%s\n", "All data had writen");
 			//std::cout << *this->url << "\n";
 			//printf("%s\n", "close connection");
@@ -723,7 +730,10 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 
 
 			//printf("%s\n", "poll_write4");
+
 			int write_count = write(this->client_socket, data + this->cache_read_position, to_write);
+
+
 
 			//write(1, data + this->cache_read_position, to_write);
 
@@ -808,7 +818,11 @@ int Session::use_cache(){
 		return -1;
 	}
 
+	//нет crlf в конце у сайта с исо при перезагрузке
+
 	int write_count = write(this->client_socket, data + this->cache_read_position, to_write);
+
+	//write(1, data + this->cache_read_position, to_write);
 
 	if(write_count < 0){
 		perror("cache write");
@@ -817,4 +831,20 @@ int Session::use_cache(){
 
 	this->cache_read_position+=to_write;
 	return 0;
+}
+
+
+
+
+int Session::close_sockets(){
+
+
+	if(-1 != this->client_socket){
+		close(this->client_socket);
+	}
+
+	if(-1 != this->remote_socket){
+		close(this->remote_socket);
+	}
+
 }
