@@ -26,12 +26,29 @@ public:
 
 	bool is_outdated(){return out_of_date;}
 	bool is_local(){return this->local;}
-	void outdated(){this->out_of_date = true;}
+
+	void outdated(){
+		this->out_of_date = true;
+		this->links_count--;
+	}
 
 
 	bool is_empty(){return 0 == size;}
 
 	bool in_progress(){return !full && (0 != size);}
+
+
+	/*bool progress();
+	bool stoped();*/
+
+
+	void use(){
+		this->out_of_date = false;
+		this->links_count++;
+	}
+
+	void unuse(){this->links_count--;}
+	int links(){return this->links_count;}
 
 	int add_data(char * data, size_t size);
 
@@ -41,6 +58,7 @@ public:
 
 private:
 
+	int links_count;
 
 	char * data;
 	size_t capacity;

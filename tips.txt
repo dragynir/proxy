@@ -1,23 +1,69 @@
+g++ parser.cpp proxy.cpp main.cpp cache.cpp session.cpp -lnsl -lresolv -lsocket -o s
 
+сравнение файлов в windows: fc file1 file2
 
 http://gemmei.ftp.acc.umu.se/mirror/cdimage/archive/7.1.0-live/i386/webboot/debian-live-7.1-i386-rescue.squashfs
 
-segfault
 
 
 http://www.kremlin.ru/multimedia/video
 
 
+
+!!!!!
+динамический буффер приема запроса
+
+
+
+
+//опера долго останавливает загрузку, это норм
+
+
+// при разъединение сервера и proxy в момент записи в кэш, необходимо назначить приемника
+
+
+
+connection reset by peer ==> надо закрыть сокеты на своей стороне
+
+
+
+
+// не работает, если стоит /ресурс отдельно от хоста, то есть, когда в url нет host???????наврятли
+
+
+connection reset by peer
+
+
+
+
+
+
+
+
+
+
+// https иконки и скрипты есть, поэтому не прогоружаются
+
+
+http://govnokod.ru/user/26135
+
+
+
+
+
+
+
+
+// content-length-->
+
 // падает при POST, CONNECT, если их разрешить
 
 
-// что отвечать google а proxy-connection? Proxy-connection:close?
 
-
-//поменять способ использования ключа char * to string
-//Range: не обрабатывается
-//загрузка файлов с остановкой google, mozilla
-//parse url function
+//поменять способ использования ключа char * to string+
+//Range: не обрабатывается+
+//загрузка файлов с остановкой google, mozilla+
+//parse url function+
 
 http://cdimage.debian.org/mirror/cdimage/archive/7.1.0-live/i386/webboot/
 

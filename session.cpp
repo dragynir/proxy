@@ -10,19 +10,22 @@ Session::Session(int client_socket, std::map<std::string, CacheRecord *> * cache
 
 	this->cache = cache;
 	this->cache_record = NULL;
+	this->global_cache_record = NULL;
+
 	state = RECEIVE_CLIENT_REQUEST;
 	cache_read_position = 0;
 	cache_write_position = 0;
 	response_answer_code = 0;
 
 	sending_to_client = false;
+	reconnect = false;
 
 
 	buffer_write_position = 0;
 	buffer_read_position = 0;
 	request_length = 0;
 	
-
+	keep_request = NULL;
 	url = NULL;
 	host = NULL;
 }
@@ -42,7 +45,7 @@ Session::~Session(){
 
 
 
-int Session::connect_to_host(char* hostname, int port) {
+int Session::connect_to_host(const char* hostname, int port) {
     int s;
     hostent* server_host;
     sockaddr_in servaddr;
@@ -83,7 +86,7 @@ int Session::connect_to_host(char* hostname, int port) {
 
 	if(NULL == server_host){
 		//perror("gethostbyname");
-		printf("%s%s\n", "Can't reach: ", hostname);
+		printf("%s%s\n", "Can't reach: ",hostname);
 		//herror("gethostbyname");
 		return -1;
 	}
@@ -153,8 +156,17 @@ int Session::replace_field(std::string& str, const std::string& from, const std:
 int Session::handle_client_request(int request_length){
 
 
+	
+	//std::string keep_request(this->buffer);
+
+	this->keep_request = new std::string();
+	this->keep_request->assign(this->buffer, request_length + strlen("\r\n\r\n"));
+
+
 	this->buffer[request_length + strlen("\r\n\r\n")] = '\0';
-	std::string keep_request(this->buffer);
+
+		/*this->host = new std::string();
+	this->host->assign(char_host, strlen(char_host));*/
 
 
 
@@ -173,6 +185,7 @@ int Session::handle_client_request(int request_length){
 
 
 	if(res < 0){
+		std::cout << "Receive unsupported method." << "\n";
 		return -1;
 	}
 
@@ -202,9 +215,17 @@ int Session::handle_client_request(int request_length){
 
 
 
-	/*std::cout << "Url= ++" << *this->url << "++\n";
+	std::cout << "Url= ++" << *this->url << "++\n";
 	std::cout << "Host= ++" << *this->host << "++\n";
-	std::cout << "Resource= ++" << string_resource << "++\n";*/
+	std::cout << "Resource= ++" << string_resource << "++\n";
+
+
+
+
+	replace_field(*this->keep_request, *this->url, string_resource);
+	replace_field(*this->keep_request, "keep-alive", "close");
+	replace_field(*this->keep_request, "Proxy-Connection", "Connection");
+
 
 
 
@@ -252,39 +273,56 @@ int Session::handle_client_request(int request_length){
 	// можно юзать кэш даже если он не закончен
 	// так и надо сделать
 	// 
-	if(this->cache->end() != it){
-		//printf("Use cache for: %s, res: %s\n", this->host, this->resource);
-		std::cout << "\n<=======================Use cache for: " << *this->url << "\n";
 
-		//this->state = SessionState::USE_CACHE;
-		this->state = USE_CACHE;
-		buffer_write_position = 0;
-		return 0;
+
+
+
+	if(this->cache->end() != it){
+
+
+		if(it->second->is_outdated()){
+
+			// удаляем текущий и перезаписываем его, он сохранен локально в одной из сессий т. к. на него есть ссылки
+			this->cache->erase(it);
+			if(0 == it->second->links()){
+				delete it->second;
+			}
+
+			std::cout << "Create cache for: " << *this->url << "\n";
+			this->global_cache_record = new CacheRecord(false);
+			this->global_cache_record->use();
+			this->cache->insert(std::pair<std::string, CacheRecord *>(*this->url, this->global_cache_record)); 
+
+		}else{
+			std::cout << "\n<=======================Use cache for: " << *this->url << "\n";
+			//this->state = SessionState::USE_CACHE;
+			this->state = USE_CACHE;
+			it->second->use();
+			this->buffer_write_position = 0;
+			return 0;
+		}
+
 	}else{
-		//std::cout << "CACHE NOT FOUND FOR: ++" << *this->url << "++\n";
+		std::cout << "Create cache for: " << *this->url << "\n";
+		this->global_cache_record = new CacheRecord(false);
+		this->global_cache_record->use();
+		this->cache->insert(std::pair<std::string, CacheRecord *>(*this->url, this->global_cache_record));
 	}
 
-
-
-
-
-
-
-
+	it = this->cache->find(*this->url);
 
 
 
 
 	int port = 80;
-	//printf("%s-%s-\n", "dns lookup for: ", this->host);
 	int remote_socket = connect_to_host(char_host, port);
 	free(char_host);
 
-	//printf("%s\n", "dns lookup 2");
-
 
 	if(remote_socket < 0){
-		//close client socket=========================================================================================
+		// тут только текущая сессия использовала кэш
+		delete this->global_cache_record;
+		this->cache->erase(it);
 		return -1;
 	}
 
@@ -294,6 +332,8 @@ int Session::handle_client_request(int request_length){
 
 
 	//this->state = SessionState::SEND_REQUEST;
+
+
 	this->state = SEND_REQUEST;
 	this->remote_socket = remote_socket;
 
@@ -305,24 +345,18 @@ int Session::handle_client_request(int request_length){
 	std::string string_url(this->url);*/
 
 
-	replace_field(keep_request, *this->url, string_resource);
-
-
-
-	//replace_field(keep_request, "Cache-Control: max-age=0", "Cache-Control: no-cache");
-	replace_field(keep_request, "keep-alive", "close");
-	replace_field(keep_request, "Proxy-Connection", "Connection");
-
-
-
-
-	const char * b_copy = keep_request.c_str();
+	//std::cout << "Get Request: " << keep_request << "\n";
+	const char * b_copy = this->keep_request->c_str();
 
 	this->request_length = strlen(b_copy);
 	bcopy(b_copy, this->buffer, this->request_length);
 	//strcpy(this->buffer, b_copy);
 	this->buffer[this->request_length] = '\0';
 	this->buffer_write_position = 0;
+
+
+	std::cout << "\n------------------------>Send request to: " << *this->url << "\n";
+
 
 
 
@@ -358,9 +392,7 @@ int Session::handle_client_request(int request_length){
 
 	//size_t REQUEST_LEN = 256;
 
-				  
-	std::cout << "\n------------------------>Send request to: " << *this->url << "\n";
-
+				 
 	//================================================================================seg
 	//printf("Send request to: %s, res: %s\n", this->host, this->resource);
 
@@ -384,12 +416,13 @@ int Session::handle_client_request(int request_length){
 
 // advanced: check for buffer overflow
 int Session::read_client_request(){
-
+	
 	int read_count = read(this->client_socket, this->buffer + this->buffer_write_position, IO_BUFFER_SIZE);
 
 
 	if(read_count < 0){
-		perror("read");
+		// тут кэша еще нет 
+		perror("read: read_client_request");
 		return -1;
 	}
 
@@ -400,12 +433,13 @@ int Session::read_client_request(){
 
 	int r_end_length = strlen("\r\n\r\n");
 
-	if(read_count > r_end_length){
+
+	if(this->buffer_write_position > r_end_length){
+
 		char * sub_position = strstr(this->buffer, "\r\n\r\n"); // ==============================cond jump uninit variable(fixed)
 
 		if(NULL != sub_position){
 			//printf("%s\n", "Reached end of request");
-
 			int request_length = sub_position - this->buffer;
 
 
@@ -413,10 +447,11 @@ int Session::read_client_request(){
 		}
 	}
 
+
 	if(0 == read_count){
+		std::cout << "Can't find request end." << "\n";
 		return -1;
 	}
-
 	return 0;
 }
 
@@ -424,25 +459,28 @@ int Session::read_client_request(){
 
 // +
 int Session::send_request(){
+	
 	int to_write = this->request_length - this->buffer_read_position;
 
 
 	int write_count = write(this->remote_socket, this->buffer + this->buffer_read_position, to_write);
 
-	this->buffer_read_position+=write_count;
 
 	if(write_count < 0){
 		perror("write");
+		//эта сессия заполняла бы в кэш
+		try_erase_cache();
 		return -1;
 	}
 
+	this->buffer_read_position+=write_count;
+
 	if(this->buffer_read_position == this->request_length){
-		buffer_read_position = 0;
-		buffer_write_position = 0;
+		this->buffer_read_position = 0;
+		this->buffer_write_position = 0;
 		//this->state = SessionState::MANAGE_RESPONSE;
 		this->state = MANAGE_RESPONSE;
 	}
-	//printf("Wrote to server: %d\n", write_count);	
 	return 0;
 }
 
@@ -455,7 +493,22 @@ int Session::send_request(){
 
 
 
+void Session::try_erase_cache(){
 
+	assert(NULL != this->global_cache_record);
+
+	this->global_cache_record->outdated();
+	if(0 == this->global_cache_record->links() && 0 == this->global_cache_record->get_size()){
+		delete this->global_cache_record;
+		std::map<std::string, CacheRecord *>::iterator  it = this->cache->find(*this->url);
+
+
+		assert(this->cache->end() != it);
+
+		this->cache->erase(it);
+		this->global_cache_record = NULL;
+	}
+}
 
 
 int Session::manage_response(int poll_read_ready, int poll_write_ready){
@@ -464,27 +517,6 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 	if(NULL == this->cache_record){
 		this->cache_record = new CacheRecord(true);
 	}
-
-
-
-
-
-	std::map<std::string, CacheRecord *>::iterator cache_it = this->cache->find(*this->url);
-
-
-
-
-	//тут может быть уже кэш ремувнут, мы его снова создадим без надобнасти
-	if(this->cache->end() == cache_it && -1 == this->response_code){
-		CacheRecord * record = new CacheRecord(false);
-
-		this->cache->insert(std::pair<std::string, CacheRecord *>(*this->url, record)); 
-	}
-
-
-
-
-
 
 	if(poll_read_ready){
 
@@ -497,23 +529,36 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 		//write(1, this->buffer, read_count);
 
 
+
+		// пока предполагается, что раннего завершения быть не может
 		if(0 == read_count){
 
-			
-			//this->sending_to_client	= false;
+			// нужно искать Content-length ====================================
+
+			close(this->remote_socket);
+			this->remote_socket = -1;
+
+			if(false == this->sending_to_client){
+				//могли юзать локальный кэш
+				if(NULL != this->global_cache_record){
+					this->global_cache_record->unuse();
+				}
+			}
+
+			//int cache_size = this->cache_record->get_size();
 
 
-			//char  r_end[5] = "\r\n\r\n";
+
+			// нужно искать Content-length ====================================
 
 
-			int cache_size = this->cache_record->get_size();
 
-			int r_end_length = strlen("\r\n\r\n");
+			/*int r_end_length = strlen("\r\n\r\n");
 			if(cache_size < r_end_length){
-
+				cache_it->second->outdated();
 				// remote server send end of data to early
 				return -1;
-			}
+			}*/
 
 
 			// can do this cause capasity is 2 * size
@@ -523,13 +568,12 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 
 
 			// found end of header
-			//char * found = strstr(this->cache_record->get_data(), "\r\n\r\n");//====================================
+			//char * found = strstr(this->cache_record->get_data(), "\r\n\r\n");//
 			
 
 
 
-			close(this->remote_socket);
-			this->remote_socket = -1;
+
 			//printf("%s\n", "close server socket ");
 			//std::cout << "Close server socket for: " << *this->url << "\n"; 
 			//std::cout << *this->url << "\n";
@@ -537,11 +581,12 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 
 			// после этого падает иногда
 		
-
 		}else if(read_count < 0){
 
+			try_erase_cache();
+
 			// ошибка чтения из сокета сервера
-			perror("read");
+			perror("read, manage_response\n");
 			return -1;
 		}
 
@@ -553,33 +598,122 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 
 		int cache_size = this->cache_record->get_size();
 
+		int res = 0;
 
-		// check response code
-		if(-1 == this->response_code && cache_size > 2){
 
-			
+
+		if(this->cache_write_position + read_count < cache_size){
+			// не нужно писать в кэш, ждем пока данные придут с нужного смещения
+			this->cache_write_position+=read_count;
+		}else{
+			if(0 == read_count){
+				this->cache_record->finish();
+				
+				std::cout << "Write cache finish for: " << *this->url << "\n";
+				
+			}else{
+				int to_add = this->cache_write_position + read_count - cache_size;
+				
+				this->cache_write_position+=read_count;
+
+				//write(1, this->buffer + (read_count - to_add), to_add);
+
+				res = this->cache_record->add_data(this->buffer + (read_count - to_add), to_add);
+				
+
+				if(res < 0){
+					std::cout << "Out of memory on: " << *this->url << "\n";
+					try_erase_cache();
+					return -1;
+				}
+
+			}
+
+		}
+
+
+
+		/*if(this->reconnect && this->cache_record->is_local()){
+
+			if(0 == read_count){
+				this->cache_record->finish();
+				std::cout << "Receive response finish for: " << *this->url << "\n";
+			}else{
+
+					int to_add = read_count;
+
+					//write(1, this->buffer + (read_count - to_add), to_add);
+
+					res = this->cache_record->add_data(this->buffer, to_add);
+					
+					if(res < 0){
+						std::cout << "Out of memory on: " << *this->url << "\n";
+						try_erase_cache();
+						return -1;
+					}
+			}
+
+		}else{
+
+			if(this->cache_write_position + read_count < cache_size){
+				// не нужно писать в кэш, ждем пока данные придут с нужного смещения
+				this->cache_write_position+=read_count;
+			}else{
+				if(0 == read_count){
+					this->cache_record->finish();
+					
+					std::cout << "Write cache finish for: " << *this->url << "\n";
+					
+				}else{
+					int to_add = this->cache_write_position + read_count - cache_size;
+					
+					this->cache_write_position+=read_count;
+
+					//write(1, this->buffer + (read_count - to_add), to_add);
+
+					res = this->cache_record->add_data(this->buffer + (read_count - to_add), to_add);
+					
+
+					if(res < 0){
+						std::cout << "Out of memory on: " << *this->url << "\n";
+						try_erase_cache();
+						return -1;
+					}
+
+				}
+
+			}
+		}*/
+
+
+
+		cache_size = this->cache_record->get_size();
+
+
+
+
+		// Если global cache не пуст, то это сессия, которая записывала в кэш, но обн outdated
+		//возможно не надо чекать
+		// добавить response code в кэш============================
+		if(-1 == this->response_code && cache_size > 2/*можем проверить конец строки*/){
+
 			char * data = this->cache_record->get_data();
 			char keep_char = data[cache_size - 1]; 
-
 			data[cache_size - 1] = '\0';
+
 			char * found = strstr(data, "\r\n");
 
 			if(NULL != found){
-				//int first_line_length = found - data;
-				//HTTP/1.1 200 OK
-				/*if(first_line_length < ){
 
-				}*/
 				found = strstr(data, " ");
 
 				if(NULL == found){
-
-					// bad response
+					try_erase_cache();
+					std::cout << "Bad response(parse response_code)" << "\n";
 					return -1;
 				}
 
 				//cheack borders: advanced
-
 
 				++found;	
 
@@ -590,38 +724,44 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 
 				if(this->response_code < 100 || this->response_code > 505){
 					printf("%s%d\n", "Unknown response code: ", this->response_code);
+					try_erase_cache();
 					return -1;
 				}
 
-				std::map<std::string, CacheRecord *>::iterator cache_it = this->cache->find(*this->url);
-				
 
-				assert(this->cache->end() != cache_it);
 				data[cache_size - 1] = keep_char;
 				*(found + 3) = ' ';
+
 
 				// если код 206 например, то будет для каждого запроса новое подключение
 				if(200 == this->response_code){
 					/*data[cache_size] = keep_char;
 					*(found + 3) = ' ';*/
-					cache_it->second->add_data(this->cache_record->get_data(), this->cache_record->get_size());
 
-					assert(this->cache_record->is_local());
-					delete this->cache_record;
 
-					this->cache_record = cache_it->second;
+					//if(!this->reconnect){
+
+						this->global_cache_record->add_data(this->cache_record->get_data(), this->cache_record->get_size());
+						assert(this->cache_record->is_local());
+						delete this->cache_record;
+						this->cache_record = this->global_cache_record;
+						assert(NULL != this->cache_record);
+
+					/*}else{
+
+						assert(NULL != this->cache_record);
+						delete this->cache_record;
+						this->cache_record = this->global_cache_record;
+					}*/
+
 				}else{
-					cache_it->second->outdated();
-					delete cache_it->second;
-					this->cache->erase(cache_it);
+					try_erase_cache();
 				}
 
 
 
 				std::cout << "Response code for: " << *this->url << " is " << this->response_code << "\n";
 
-				//*(found + 3) = ' ';
-
 			}else{
 				data[cache_size - 1] = keep_char;
 			}
@@ -629,47 +769,15 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 
 
 
-		int res = 0;
-
-
-		
-
-
-
-		if(this->cache_write_position + read_count < cache_size){
-			// не нужно писать в кэш, ждем пока данные придут с нужного смещения
-			this->cache_write_position+=read_count;
-		}else{
-			if(0 == read_count){
-				this->cache_record->finish();
-				//printf("%s\n", "Cache finish");
-				//std::cout << *this->url << "\n";
-			}else{
-				int to_add = this->cache_write_position + read_count - cache_size;
-
-
-				
-				
-				// добавляем данные в кэш
-				this->cache_write_position+=read_count;
-
-
-
-				//write(1, this->buffer + (read_count - to_add), to_add);
-
-
-				res = this->cache_record->add_data(this->buffer + (read_count - to_add), to_add);
-				
-
-				if(res < 0){
-					// just exit from function --> delete current session
-					return -1;
-				}
-			}
-
-
+		if(0 == read_count && -1 == this->response_code){
+			try_erase_cache();
+			std::cout << "Response code didn't found, but found end of response for: " << *this->url << "\n";
+			return -1;
 		}
 	}
+
+
+
 
 
 
@@ -684,52 +792,43 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 
 		assert(this->client_socket	>= 0);
 
+
+
 		char * data = this->cache_record->get_data();
 		int size = this->cache_record->get_size();
 
 		if(NULL == data){
+			assert(0 == size);
 			return 0;
 		}
 
-		//printf("%s\n", "poll_write1");
 
 		int to_write = size - this->cache_read_position;
 
 
 		assert(to_write >= 0);
-		//printf("%s\n", "poll_write2");
+		
 
 		if(0 == to_write && this->cache_record->is_full()){
 			this->sending_to_client	= false;
-
-
+			std::cout << "All data had writen for: " << *this->url << "\n";
 			close(this->client_socket);
 			this->client_socket = -1;
 
-			//printf("%s\n", "All data had writen");
-			//std::cout << *this->url << "\n";
-			//printf("%s\n", "close connection");
 
-			//delete session: ok
+			//мы могли использовать уже локальный кэш
+			if(NULL != this->global_cache_record){
+				this->global_cache_record->unuse();
+			}
+			//cache is ok, just delete session
 			return -1;
 		}
 
-		//printf("%s\n", "poll_write3");
 
 		if(0 != to_write){
-
-
-
-
 			/*if(to_write > IO_BUFFER_SIZE){
 				to_write = IO_BUFFER_SIZE;
 			}*/
-
-
-
-
-
-			//printf("%s\n", "poll_write4");
 
 			int write_count = write(this->client_socket, data + this->cache_read_position, to_write);
 
@@ -737,28 +836,23 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 
 			//write(1, data + this->cache_read_position, to_write);
 
-			//printf("%s\n", "poll_write5");
 			if(write_count < 0){
-
-				// возможно отсоединился клиент
-				//printf("%s\n", "poll_write6");
 				close(this->client_socket);
 				this->client_socket	= -1;
 				this->sending_to_client = false;
-
 				std::cout << "Close client socket for: " << *this->url << "\n";
-				//printf("%s\n", "close client socket");
-				perror("write");
-
-
+				perror("write to client: ");
 				// do not delete session, докачиваем данные
 				return 0;
 			}
+
 
 			this->cache_read_position+=write_count;
 			
 
 		}
+
+
 	}
 
 	return 0;
@@ -767,28 +861,82 @@ int Session::manage_response(int poll_read_ready, int poll_write_ready){
 
 
 
+
+
+
 //=================================================================
 int Session::use_cache(){
+
+	/*std::cout << "Keep request\n";
+
+	std::cout << *this->keep_request << "\n";*/
+
 
 	if(NULL == this->cache_record){
 		std::map<std::string, CacheRecord *>::iterator it = this->cache->find(*this->url);
 		this->cache_record = it->second;
 
 		if(this->cache->end() == it){
-			printf("%s\n", "Cache error");
+			std::cout << "\nCache error\n" << "\n";
 			return -1;
 		}
 	}
 
-	//std::cout << "Bad:\n" << *this->url << "\n";
 
-	// what if cache is not full and is not in progress--> open connection
+
+	if(this->cache_record->is_outdated()){
+		this->global_cache_record = this->cache_record;
+		try_erase_cache();
+		close_sockets();
+		std::cout << "Cache is outdated" << "\n";
+		return -1;
+	}
+
+
+
 
 	
-	if(this->cache_record->is_outdated()){
-		// connect to host and unchange cache_read_position
-		
-	}
+	/*if(this->cache_record->is_outdated()){
+		this->cache_record->use();
+
+		int port = 80;
+		this->remote_socket = connect_to_host(this->host->c_str(), port);
+
+
+
+		if(this->remote_socket < 0){
+			std::cout << "Reconnect failed for: " << *this->url << "\n";
+			try_erase_cache();			
+			return -1;
+		}
+
+
+		// будем дописывать кэш
+		this->cache_write_position = this->cache_record->get_size();
+
+
+		this->global_cache_record = this->cache_record;
+		this->cache_record = NULL;
+
+
+
+
+		//cache read position the same
+
+		const char * b_copy = this->keep_request->c_str();
+		this->request_length = strlen(b_copy);
+		bcopy(b_copy, this->buffer, this->request_length);
+		this->buffer[this->request_length] = '\0';
+		this->buffer_write_position = 0;
+		this->buffer_read_position = 0;
+
+		this->state = SEND_REQUEST;
+		this->reconnect = true;
+
+		printf("%s\n", this->buffer);
+		std::cout << "***********************************---->Reconnect to: " << *this->url << "\n";  
+		return 0;
+	}*/
 
 
 
@@ -814,6 +962,7 @@ int Session::use_cache(){
 	}*/
 
 	if(0 == to_write && this->cache_record->is_full()){
+		std::cout << "All data had writen(cache) for: " << *this->url << "\n";
 		//delete session ok
 		return -1;
 	}
@@ -829,7 +978,10 @@ int Session::use_cache(){
 		return -1;
 	}
 
-	this->cache_read_position+=to_write;
+	this->cache_read_position+=write_count;
+
+
+
 	return 0;
 }
 

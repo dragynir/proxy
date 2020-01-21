@@ -10,6 +10,7 @@ CacheRecord::CacheRecord(bool local){
 	this->full = false;
 	this->out_of_date = false;
 	this->capacity = 0;
+	this->links_count = 0;
 }
 
 

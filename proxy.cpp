@@ -133,8 +133,7 @@ int Proxy::serve_session(Session * session, pollfd * fds){
     switch (session->getState()) {
 
         case RECEIVE_CLIENT_REQUEST:
-
-
+            //кэш еще не создан
             if((POLLHUP | POLLERR) & fds[0].revents){
             	fprintf(stderr, "Client closed!\n");
             	session->close_sockets();
@@ -148,19 +147,13 @@ int Proxy::serve_session(Session * session, pollfd * fds){
             	}
             	return res;
         	}
-
-
-
             break;
         case SEND_REQUEST:
-        	//printf("%s\n", "sending request...");
 
-
-
-
-
-            if (POLLHUP & fds[1].revents) {
+            //кэш уже есть
+            if ((POLLHUP | POLLERR) & fds[1].revents) {
                 fprintf(stderr, "Remote server closed!\n");
+                session->try_erase_cache();
                 session->close_sockets();
                 return -1;
             }
@@ -173,23 +166,22 @@ int Proxy::serve_session(Session * session, pollfd * fds){
 
             	return res;
             }
-
-
-
-
             break;
 
         case MANAGE_RESPONSE:
 
+            //кэш есть
 
-
-            if ((fds[0].revents & POLLHUP) || (fds[1].revents & POLLHUP)) {
+            if ((fds[0].revents & (POLLHUP | POLLERR)) || (fds[1].revents & (POLLHUP | POLLERR))) {
             	// тут необъходимо учитывать кэш?
             	// в solaris  понимать конец сообщения
+                session->try_erase_cache();
             	session->close_sockets();
+                std::cout << "Close connections for:===========================" << "\n";
                 fprintf(stderr, "Connection closed POLLHUP!\n");
                 return -1;
             }
+
             if ((fds[1].revents & POLLIN) || (session->is_sending() && (fds[0].revents & POLLOUT))) {
             	int res = session->manage_response(fds[1].revents & POLLIN, fds[0].revents & POLLOUT);
             	if(res < 0){
@@ -222,6 +214,7 @@ int Proxy::serve_session(Session * session, pollfd * fds){
             	return res;
 
             }
+
             break;
         default:
         	return -1;

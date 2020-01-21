@@ -72,6 +72,9 @@ public:
 	bool is_sending(){return sending_to_client;};
 	//void set_is_sending(bool sending){sending_to_client = sending;};
 
+
+	void try_erase_cache();
+
 	~Session();
 
 
@@ -79,7 +82,7 @@ private:
 
 	int handle_client_request(int request_length);
 
-	int connect_to_host(char* hostname, int port);
+	int connect_to_host(const char* hostname, int port);
 
 	int replace_field(std::string& str, const std::string& from, const std::string& to);
 
@@ -93,9 +96,14 @@ private:
 
 	CacheRecord * cache_record;
 
+	CacheRecord * global_cache_record;
+
 	std::string * url;
 	std::string * host;
+	std::string * keep_request;
 	int response_code;
+	bool reconnect;
+
 
 
 	bool sending_to_client;
