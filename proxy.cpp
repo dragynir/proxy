@@ -7,8 +7,6 @@ Proxy::Proxy(int listener){
 }
 
 
-
-
 void Proxy::start(){
 
 	int poll_wait_infinite = -1;
@@ -89,12 +87,29 @@ void Proxy::start(){
 int Proxy::accept_connection(){
 	int client_socket = accept(this->listener, NULL, NULL);
 
+
+    if(fcntl(client_socket, F_SETFL, O_NONBLOCK) == -1){
+        perror("fcntl");
+        return -1;
+    }
+
 	if(client_socket < 0){
 		perror("accept");
 		return -1;
 	}
 	//printf("%s\n", "Accept connection");
-	Session * session = new Session(client_socket, &this->cache);
+
+    Session * session = NULL;
+    try
+    {
+        session = new Session(client_socket, &this->cache);
+    }
+    catch (std::bad_alloc& ba)
+    {
+        std::cerr << "bad_alloc caught: " << ba.what() << '\n';
+        return -1;
+    }
+	
 	//printf("%s\n", "push_back");
 	this->sessions.push_back(session);
 	return 0;
@@ -294,17 +309,22 @@ int Proxy::update_sessions(){
 
 
 
-int Proxy::close_session(Session * session){
-	assert(NULL != session);
-	return 0;
-}
 
-int Proxy::close_all_sessions(){
+void Proxy::close_all_sessions(){
 	printf("%s\n", "All sessions closed");
 	for(size_t i = 0; i < this->sessions.size(); ++i){
 		this->sessions[i]->close_sockets();
 		assert(NULL != this->sessions[i]);
 		delete this->sessions[i];
 	}
-	return 0;
+}
+
+
+Proxy::~Proxy(){
+    close_all_sessions();
+
+    for(std::map<std::string, CacheRecord *>::iterator it = this->cache.begin(); it != this->cache.end(); ++it) {
+        delete it->second;
+    }
+    this->cache.clear();
 }

@@ -18,7 +18,7 @@ int HttpParser::parse_start_line(char * start_line, int line_length, http_info *
 	//parse url fix
 	// strcmp(cursor, "CONNECT") != 0
     if (strcmp(cursor, "GET") != 0) {
-        //fprintf(stderr, "Wrong method! %s\n", cursor);
+        fprintf(stderr, "Unsupported method! %s\n", cursor);
         return -1;
     }
 
@@ -142,6 +142,16 @@ int HttpParser::parse_url(char* parsing_str, http_info * info) {
     *host_end = '\0';
     int host_length = strlen(host_start);
     info->host = (char *)malloc(host_length + 1);
+
+
+    if(NULL == info->host){
+    	perror("malloc: info.host");
+    	return -1;
+    }
+
+
+
+
     bcopy(host_start, info->host, host_length + 1);
     *host_end = keep_char;
 
@@ -150,6 +160,15 @@ int HttpParser::parse_url(char* parsing_str, http_info * info) {
     //printf("++%s++\n", resource_start);
     int resource_length = strlen(resource_start);
     info->resource = (char *)malloc(resource_length + 1);
+
+
+    if(NULL == info->resource){
+    	perror("malloc: info.resource");
+    	free(info->host);
+    	return -1;
+    }
+
+
     bcopy(resource_start, info->resource, resource_length + 1);
 
     return 0;
@@ -309,6 +328,12 @@ int HttpParser::parse_client_request(
 	while(1){
 		
 		char * host_line_end = strchr(cursor, '\r');
+
+		if(NULL == host_line_end){
+			free(info.url);
+			return -1;
+		}
+
 		*host_line_end = '\0';
 
 		char * has_host = strstr(cursor, "Host:");

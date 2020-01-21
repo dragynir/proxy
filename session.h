@@ -6,6 +6,10 @@
 #include"cache.h"
 
 
+#include<new>
+
+
+
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -98,9 +102,10 @@ private:
 
 	CacheRecord * global_cache_record;
 
-	std::string * url;
-	std::string * host;
-	std::string * keep_request;
+	std::string  url;
+	std::string  host;
+	std::string  keep_request;
+	
 	int response_code;
 	bool reconnect;
 

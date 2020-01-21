@@ -20,6 +20,8 @@ public:
 
 	Proxy(int listener);
 
+	~Proxy();
+
 
 	void start();
 
@@ -37,10 +39,7 @@ private:
 
 
 
-
-	int close_session(Session * session);
-
-	int close_all_sessions();
+	void close_all_sessions();
 
 
 	int listener;

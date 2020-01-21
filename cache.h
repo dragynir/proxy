@@ -43,7 +43,6 @@ public:
 
 
 	void use(){
-		this->out_of_date = false;
 		this->links_count++;
 	}
 

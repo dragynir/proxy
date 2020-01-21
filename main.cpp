@@ -44,10 +44,29 @@ int main(int argc, char** argv){
     //signal(SIGINT, sigint_handler);
     signal(SIGPIPE, SIG_IGN);
 
-    int port_to_listen = atoi(argv[1]);
+
+
+
+    int radix = 10;
+    int port_to_listen = strtol(argv[1], NULL, radix);
+        
+    if(0 != errno){
+        perror("strtol");
+        printf("Invalid argument: bind port.\n");
+        return EXIT_FAILURE;
+    }
+
+
+    //int port_to_listen = atoi(argv[1]);
+
 
     int listener = bind_to_port(port_to_listen);
 
+
+    if(fcntl(listener, F_SETFL, O_NONBLOCK) == -1){
+        perror("fcntl");
+        return -1;
+    }
 
     int res = listen(listener, MAX_CONNECTIONS_COUNT);
 
