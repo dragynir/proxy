@@ -12,7 +12,7 @@
 #include<string.h>
 
 
-#define MAX_CONNECTIONS_COUNT 100
+#define MAX_CONNECTIONS_COUNT 1024
 
 
 int bind_to_port(int port) {
@@ -24,6 +24,11 @@ int bind_to_port(int port) {
     servaddr.sin_port = htons((uint16_t)port);               
 
     int listener = socket(AF_INET, SOCK_STREAM, 0);                        
+
+    if(listener < 0){
+        perror("socket");
+        return -1;
+    }
     int res = bind(listener, (struct sockaddr*)&servaddr, sizeof(servaddr));
     if (res < 0) {   
         fprintf(stderr, "Can't bind to port %d!\n", port);
@@ -41,7 +46,7 @@ int main(int argc, char** argv){
         return EXIT_FAILURE;
     }
 
-    //signal(SIGINT, sigint_handler);
+
     signal(SIGPIPE, SIG_IGN);
 
 
@@ -57,10 +62,11 @@ int main(int argc, char** argv){
     }
 
 
-    //int port_to_listen = atoi(argv[1]);
-
-
     int listener = bind_to_port(port_to_listen);
+
+    if(listener < 0){
+        return EXIT_FAILURE;
+    }
 
 
     if(fcntl(listener, F_SETFL, O_NONBLOCK) == -1){

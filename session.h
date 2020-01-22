@@ -45,7 +45,7 @@ enum SessionState {
 
 
 class Session{
-	// destory url
+	
 public:
 
 	int client_socket;
@@ -53,13 +53,9 @@ public:
 
 	Session(int client_socket, std::map<std::string, CacheRecord *> * cache);
 
-	//void set_remote_socket(int socket);
-
 	int getState(){return state;}
-	void setState(SessionState state){this->state = state;}
 
-	/*void setUrl(char * url){this->url = url;};
-	void setProtocol(char * protocol){this->protocol = protocol;}*/
+	void setState(SessionState state){this->state = state;}
 
 	char * getBuffer(){return buffer;}
 
@@ -68,14 +64,13 @@ public:
 	int read_client_request();
 	int send_request();
 	int manage_response(int poll_read_ready, int poll_write_ready);
-
 	int use_cache();
+
+
+
 	void close_sockets();
 
-
 	bool is_sending(){return sending_to_client;};
-	//void set_is_sending(bool sending){sending_to_client = sending;};
-
 
 	void try_erase_cache();
 

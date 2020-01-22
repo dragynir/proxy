@@ -6,7 +6,7 @@ g++ parser.cpp proxy.cpp main.cpp cache.cpp session.cpp -lnsl -lresolv -lsocket 
 
 
 
-
+//MAX_CONNECTIONS PARAMETER!!!!!!!!!!!!!!!
 
 для увеличения скорости можно попробовать посмотреть как часто сокет может заблокироваться
 

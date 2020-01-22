@@ -25,14 +25,13 @@ int CacheRecord::add_data(char * add_data, size_t add_size){
 	}
 
 	size_t new_size = add_size + this->size;
+	int factor = 2;
 	if(new_size > this->capacity){
 
-		/// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! factor * 2
-
 		if(NULL == this->data){
-			this->data = (char *)malloc(new_size * 2);
+			this->data = (char *)malloc(new_size * factor);
 		}else{
-			this->data = (char *)realloc(this->data, new_size * 2);
+			this->data = (char *)realloc(this->data, new_size * factor);
 		}
 
 		if(NULL == this->data){
@@ -44,7 +43,7 @@ int CacheRecord::add_data(char * add_data, size_t add_size){
 			perror("realloc");
 			return -1;
 		}
-		this->capacity = new_size * 2;
+		this->capacity = new_size * factor;
 	}
 
 

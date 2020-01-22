@@ -12,7 +12,6 @@
 
 
 
-
 class Proxy{
 
 
@@ -33,12 +32,6 @@ private:
 
 	int update_sessions();
 
-
-
-	//int manage_client_request(Session * session);
-
-
-
 	void close_all_sessions();
 
 
@@ -47,6 +40,4 @@ private:
 	std::map<std::string, CacheRecord *> cache;
 	std::vector<pollfd> fdset;
 	std::vector<Session *> sessions;
-	//std::map<std::string,  hostent *> dns_resolved;
-
 };

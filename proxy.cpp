@@ -34,9 +34,6 @@ void Proxy::start(){
 			break;
 		}
 
-		//fds_array = this->fdset.data();
-
-
 		fds_array = &this->fdset[0];
 
 		assert(NULL != fds_array);
@@ -56,8 +53,6 @@ void Proxy::start(){
 		for(int i = 0; i < sessions_count; ++i){
 			result = serve_session(this->sessions[i], &fds_array[i * 2 + 1]);
 			if(result < 0){
-				//close_session(this->sessions[i]);
-
 				assert(NULL != this->sessions[i]);
 				delete this->sessions[i];
 				this->sessions.erase(this->sessions.begin() + i);
@@ -97,7 +92,6 @@ int Proxy::accept_connection(){
 		perror("accept");
 		return -1;
 	}
-	//printf("%s\n", "Accept connection");
 
     Session * session = NULL;
     try
@@ -110,32 +104,13 @@ int Proxy::accept_connection(){
         return -1;
     }
 	
-	//printf("%s\n", "push_back");
 	this->sessions.push_back(session);
 	return 0;
 }	
 
 
-
-
-
-
-
-/*int Proxy::manage_client_request(Session * session){
-
-
-
-
-
-
-
-
-
-}*/
-
-//====================================================================== close socket if -1
 int Proxy::serve_session(Session * session, pollfd * fds){
-	//printf("%s\n", "server session");
+	
 	assert(NULL != session);
 	assert(NULL != fds);
 
@@ -148,7 +123,7 @@ int Proxy::serve_session(Session * session, pollfd * fds){
     switch (session->getState()) {
 
         case RECEIVE_CLIENT_REQUEST:
-            //кэш еще не создан
+            
             if((POLLHUP | POLLERR) & fds[0].revents){
             	fprintf(stderr, "Client closed!\n");
             	session->close_sockets();
@@ -165,7 +140,7 @@ int Proxy::serve_session(Session * session, pollfd * fds){
             break;
         case SEND_REQUEST:
 
-            //кэш уже есть
+            
             if ((POLLHUP | POLLERR) & fds[1].revents) {
                 fprintf(stderr, "Remote server closed!\n");
                 session->try_erase_cache();
@@ -185,11 +160,7 @@ int Proxy::serve_session(Session * session, pollfd * fds){
 
         case MANAGE_RESPONSE:
 
-            //кэш есть
-
             if ((fds[0].revents & (POLLHUP | POLLERR)) || (fds[1].revents & (POLLHUP | POLLERR))) {
-            	// тут необъходимо учитывать кэш?
-            	// в solaris  понимать конец сообщения
                 session->try_erase_cache();
             	session->close_sockets();
                 std::cout << "Close connections for:===========================" << "\n";
@@ -212,9 +183,6 @@ int Proxy::serve_session(Session * session, pollfd * fds){
 
 
         case USE_CACHE:
-        	// если отлетит соединение, которое заполняет кэш, а есть читающие этот кэш,
-        	// должен найтись заместитель
-
             if (fds[0].revents & POLLHUP) {
                 fprintf(stderr, "Connection closed!\n");
                 session->close_sockets();
@@ -232,6 +200,7 @@ int Proxy::serve_session(Session * session, pollfd * fds){
 
             break;
         default:
+            printf("%s\n", "Invalid session state");
         	return -1;
 
 	}
@@ -267,7 +236,6 @@ int Proxy::update_sessions(){
         if(fds_count < i + 1){
        		this->fdset.push_back(new_pollfd);
        		this->fdset.push_back(new_pollfd);
-       		//printf("%s\n", "add new fd");
         }
 
 
