@@ -50,7 +50,6 @@ int main(int argc, char** argv){
     signal(SIGPIPE, SIG_IGN);
 
 
-
     char * next = NULL;
     int radix = 10;
     int port_to_listen = strtol(argv[1], &next, radix);

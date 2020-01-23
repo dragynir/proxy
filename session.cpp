@@ -8,6 +8,10 @@ Session::Session(int client_socket, std::map<std::string, CacheRecord *> * cache
 	this->response_code = -1;
 
 
+	this->buffer = NULL;
+	this->buffer_capacity = 0;
+
+
 	this->cache = cache;
 	this->cache_record = NULL;
 	this->global_cache_record = NULL;
@@ -32,6 +36,7 @@ Session::~Session(){
 	if(NULL != this->cache_record && this->cache_record->is_local()){
 		delete this->cache_record;
 	}
+	free(this->buffer);
 }
 
 
@@ -252,8 +257,34 @@ int Session::handle_client_request(int request_length){
 
 
 int Session::read_client_request(){
+
+	if(NULL == this->buffer){
+		this->buffer = (char *)malloc(SESSION_BUFFER_SIZE);
+		if(NULL == this->buffer){
+			perror("malloc");
+			return -1;
+		}
+		this->buffer_capacity = SESSION_BUFFER_SIZE;
+	}
+
+
+	if(this->buffer_write_position + IO_BUFFER_SIZE  + 1 > this->buffer_capacity){
+		int factor = 2;
+		this->buffer = (char *)realloc(this->buffer, this->buffer_capacity * factor);
+
+		if(NULL == this->buffer){
+			perror("malloc");
+			return -1;
+		}
+		this->buffer_capacity = this->buffer_capacity * factor;
+	}
+
+
 	
 	int read_count = read(this->client_socket, this->buffer + this->buffer_write_position, IO_BUFFER_SIZE);
+
+
+
 
 
 	if(read_count < 0){
