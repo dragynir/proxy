@@ -30,8 +30,8 @@
 
 
 
-#define SESSION_BUFFER_SIZE 8192
-#define IO_BUFFER_SIZE 4096
+#define SESSION_BUFFER_SIZE 10248
+#define IO_BUFFER_SIZE 8192
 
 
 
@@ -95,6 +95,7 @@ private:
 
 	CacheRecord * cache_record;
 
+	bool use_global_record;
 	CacheRecord * global_cache_record;
 
 	std::string  url;

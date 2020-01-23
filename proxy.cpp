@@ -143,7 +143,6 @@ int Proxy::serve_session(Session * session, pollfd * fds){
             
             if ((POLLHUP | POLLERR) & fds[1].revents) {
                 fprintf(stderr, "Remote server closed!\n");
-                session->try_erase_cache();
                 session->close_sockets();
                 return -1;
             }
@@ -161,7 +160,6 @@ int Proxy::serve_session(Session * session, pollfd * fds){
         case MANAGE_RESPONSE:
 
             if ((fds[0].revents & (POLLHUP | POLLERR)) || (fds[1].revents & (POLLHUP | POLLERR))) {
-                session->try_erase_cache();
             	session->close_sockets();
                 std::cout << "Close connections for:===========================" << "\n";
                 fprintf(stderr, "Connection closed POLLHUP!\n");
