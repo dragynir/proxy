@@ -33,7 +33,7 @@ http://www.ecolife.ru/edu-blog/
 http://www.ito.su/main.php?pid=261&cid=44
 
 
-
+или https скрипт
 если не грузит, перезагрузи страницу, может быть connection reset by peer===> сервер разорвал соединение
 
 

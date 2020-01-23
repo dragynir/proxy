@@ -41,7 +41,7 @@ int bind_to_port(int port) {
 int main(int argc, char** argv){
 
 
-    if (2 > argc) {
+    if (2 != argc) {
         fprintf(stderr, "Usage: %s <bind port>\n", argv[0]);
         return EXIT_FAILURE;
     }
@@ -51,12 +51,11 @@ int main(int argc, char** argv){
 
 
 
-
+    char * next = NULL;
     int radix = 10;
-    int port_to_listen = strtol(argv[1], NULL, radix);
+    int port_to_listen = strtol(argv[1], &next, radix);
         
-    if(0 != errno){
-        perror("strtol");
+    if((next == argv[1]) || (*next != '\0')){
         printf("Invalid argument: bind port.\n");
         return EXIT_FAILURE;
     }
